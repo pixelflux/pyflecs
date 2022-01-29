@@ -56,6 +56,7 @@ PYBIND11_MODULE(_flecs, m) {
         .def("set", &wrap_entity_set)
         .def("get", &wrap_entity_get)
         .def("remove", &entity::remove)
+        .def("raw", &entity::raw)
         ;
 
     py::class_<component>(m, "component")

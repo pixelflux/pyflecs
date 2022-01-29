@@ -2,25 +2,25 @@
 This provides a test which runs through the quickstart
 """
 import numpy as np
-import pyflecs as flecs
+import flecs
 
 
 def test_quickstart():
-    world = flecs.world()
+    world = flecs.World()
 
     e = world.entity()
-    assert e.is_alive()
+    assert e.is_alive
     e.destruct()
-    assert not e.is_alive()
+    assert not e.is_alive
 
     e = world.entity("Bob")
-    assert e.name() == "Bob"
+    assert e.name == "Bob"
 
     e = world.lookup("Bob")
-    assert e.name() == "Bob"
+    assert e.name == "Bob"
 
-    pos = np.array([1, 4, 2], dtype='uint8')
-    position = world.component("Position", pos.nbytes, pos.dtype.alignment)
+    pos = np.array([1, 4, 2], dtype='float32')
+    position = world.component("Position", pos.dtype, pos.shape)
 
     e.add(position)
     e.set(position, pos)

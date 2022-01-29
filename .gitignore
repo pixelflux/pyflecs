@@ -2,5 +2,6 @@
 .vscode/
 .vs/
 out/
+*.pyd
 
 CMakeSettings.json
