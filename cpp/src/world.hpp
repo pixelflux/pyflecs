@@ -25,7 +25,10 @@
 #include "flecs.h"
 #include "entity.hpp"
 #include "component.hpp"
+#include "filter.hpp"
+
 #include <string>
+#include <vector>
 
 /**
  * Approximates the flecs C++ class interface for the world.
@@ -40,9 +43,13 @@ namespace pyflecs {
         pyflecs::entity entity();
         pyflecs::entity entity(std::string name);
         pyflecs::entity lookup(std::string name);
+        pyflecs::entity lookup_path(std::string name);
 
-        pyflecs::component component(std::string name, size_t size, 
+        pyflecs::entity component(std::string name, size_t size, 
             size_t alignment);
+
+        pyflecs::filter create_filter(std::string name, std::string expr, 
+            std::vector<pyflecs::entity> terms);
 
         ecs_world_t* raw()
         {

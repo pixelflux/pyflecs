@@ -25,24 +25,38 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/stl.h>
 
 #include "world.hpp"
 #include "entity.hpp"
+#include "filter.hpp"
 
 namespace py = pybind11;
 using namespace pyflecs;
 
-void wrap_entity_set(entity* e, component *c, 
+void wrap_entity_set(entity* e, entity*c,
     py::array_t<uint8_t, py::array::c_style | py::array::forcecast> data)
 {
     py::buffer_info info = data.request();
-    e->set(*c, info.ptr);
+    e->set(*c, data.nbytes(), info.ptr);
 }
 
-py::array_t<uint8_t> wrap_entity_get(entity* e, component* c)
+py::array_t<uint8_t> wrap_entity_get(entity* e, entity* c)
 {
     auto ptr = reinterpret_cast<const uint8_t*>(e->get(*c));
-    return py::array_t<uint8_t>(c->size(), ptr);
+    // Must pass a dummy owner such that pybind will return the data without
+    // modification: https://github.com/pybind/pybind11/issues/323
+    py::str dummy;
+    return py::array_t<uint8_t>(c->size(), ptr, dummy);
+}
+
+py::array_t<uint8_t> wrap_filter_iter_term(filter_iter *iter, entity& e, 
+    int32_t idx)
+{
+    auto result = reinterpret_cast<const uint8_t*>(iter->term(e, idx));
+    uint32_t size = iter->count() * e.size();
+    py::str dummy; // See note above about ownership
+    return py::array_t<uint8_t>(size, result, dummy);
 }
 
 PYBIND11_MODULE(_flecs, m) {
@@ -54,12 +68,36 @@ PYBIND11_MODULE(_flecs, m) {
         .def("name", &entity::name)
         .def("add", &entity::add)
         .def("set", &wrap_entity_set)
-        .def("get", &wrap_entity_get)
+        .def("get", &wrap_entity_get, py::return_value_policy::reference)
         .def("remove", &entity::remove)
+        .def("has", &entity::has)
         .def("raw", &entity::raw)
+
+        // Pairs
+        .def("add_pair", &entity::add_pair)
+        .def("remove_pair", &entity::remove_pair)
+        .def("has_pair", &entity::has_pair)
+
+        // Hierarchies
+        .def("path", &entity::path)
+        .def("add_child", &entity::add_child)
+        .def("lookup", &entity::lookup)
+        
+        // Instancing
+        .def("is_a", &entity::is_a)
+
+        // Type
+        .def("type", &entity::type)
         ;
 
-    py::class_<component>(m, "component")
+    py::class_<filter_iter>(m, "filter_iter")
+        .def("next", &filter_iter::next)
+        .def("term", &wrap_filter_iter_term, 
+            py::return_value_policy::reference)
+        ;
+
+    py::class_<filter>(m, "filter")
+        .def("iter", &filter::iter)
         ;
 
     py::class_<world>(m, "world")
@@ -67,7 +105,9 @@ PYBIND11_MODULE(_flecs, m) {
         .def("entity", py::overload_cast<>(&world::entity))
         .def("entity", py::overload_cast<std::string>(&world::entity))
         .def("lookup", &world::lookup)
+        .def("lookup_path", &world::lookup_path)
         .def("component", &world::component)
+        .def("create_filter", &world::create_filter)
         ;
 
 }

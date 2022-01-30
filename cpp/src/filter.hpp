@@ -23,24 +23,35 @@
 #pragma once
 
 #include "flecs.h"
-#include <string>
+#include "entity.hpp"
+
 
 namespace pyflecs {
 
-    class component final {
+    class filter_iter final {
     public:
-        component(ecs_world_t* world, std::string name, size_t size,
-            size_t alignment);
-        ~component();
+        filter_iter(ecs_iter_t iter);
 
-        ecs_entity_t raw()
+        bool next();
+        void* term(entity& e, int32_t idx);
+        int32_t count()
         {
-            return mRaw;
+            return mRaw.count;
         }
 
     private:
-        ecs_world_t* mpWorld;
-        ecs_entity_t mRaw;
+        ecs_iter_t mRaw;
+
     };
 
+    class filter final {
+    public:
+        filter(ecs_world_t* world, ecs_filter_t filter);
+
+        filter_iter iter();
+
+    private:
+        ecs_world_t* mpWorld;
+        ecs_filter_t mRaw;
+    };
 }

@@ -22,6 +22,8 @@
 
 #include "world.hpp"
 
+#include <stdexcept>
+
 using namespace pyflecs;
 
 world::world() : 
@@ -50,12 +52,48 @@ pyflecs::entity world::entity(std::string name)
 
 pyflecs::entity world::lookup(std::string name)
 {
-    ecs_lookup(mpRaw, name.c_str());
     return pyflecs::entity(mpRaw, ecs_lookup(mpRaw, name.c_str()));
 }
 
-pyflecs::component world::component(std::string name, size_t size, 
+pyflecs::entity world::lookup_path(std::string name)
+{
+    return pyflecs::entity(mpRaw, ecs_lookup_path(mpRaw, 0, name.c_str()));
+}
+
+pyflecs::entity world::component(std::string name, size_t size, 
     size_t alignment)
 {
-    return pyflecs::component(mpRaw, name, size, alignment);
+    ecs_component_desc_t desc = { 0 };
+    desc.entity.entity = 0;
+    desc.entity.name = name.c_str();
+    desc.entity.symbol = name.c_str();
+    desc.size = size;
+    desc.alignment = alignment;
+    auto component_id = ecs_component_init(mpRaw, &desc);
+    if (component_id == 0)
+        throw std::runtime_error("Component could not be created");
+    return pyflecs::entity(mpRaw, component_id);
+}
+
+pyflecs::filter world::create_filter(std::string name, 
+    std::string expr, std::vector<pyflecs::entity> terms)
+{
+    ecs_filter_t f;
+    ecs_filter_desc_t desc{};
+    desc.name = name.c_str();
+    desc.expr = expr.c_str();
+
+    if (terms.size() > ECS_TERM_DESC_CACHE_SIZE)
+    {
+        // TODO
+    }
+    else
+    {
+        for (auto idx = 0; idx < terms.size(); idx++)
+        {
+            desc.terms[idx] = ecs_term_t{ terms[idx].raw() };
+        }
+    }    ecs_filter_init(mpRaw, &f, &desc);
+
+    return pyflecs::filter(mpRaw, f);
 }

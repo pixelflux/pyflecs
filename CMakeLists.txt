@@ -16,7 +16,7 @@ find_package(pybind11 REQUIRED)
 pybind11_add_module(${PROJECT_NAME} ${CPP_DIR}/src/bindings.cpp
     ${CPP_DIR}/src/world.cpp
     ${CPP_DIR}/src/entity.cpp
-    ${CPP_DIR}/src/component.cpp
+    ${CPP_DIR}/src/filter.cpp
 )
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)

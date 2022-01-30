@@ -11,6 +11,7 @@ import flecs._flecs as _flecs
 from ._entity import Entity
 from ._component import Component
 from ._types import ShapeLike
+from ._filter import FilterBuilder
 
 
 class World:
@@ -20,6 +21,9 @@ class World:
     """
     def __init__(self):
         self._ptr = _flecs.world()
+
+        # Also store a dictionary of all components.
+        self._components = {}
 
     def entity(self, name: Optional[str] = None) -> Entity:
         """
@@ -34,9 +38,15 @@ class World:
         e = self._ptr.entity() if name is None else self._ptr.entity(name)
         return Entity(e)
 
-    def lookup(self, name: str) -> Entity:
-        return Entity(self._ptr.lookup(name))
+    def lookup(self, name: str) -> Optional[Entity]:
+        if name in self._components:
+            return self._components[name]
+        ptr = self._ptr.lookup(name)
+        return None if ptr.raw() == 0 else Entity(ptr)
 
+    def lookup_path(self, name: str) -> Optional[Entity]:
+        ptr = self._ptr.lookup_path(name)
+        return None if ptr.raw() == 0 else Entity(ptr)
 
     def component(self, name: str, dtype: npt.DTypeLike,
                   shape: ShapeLike = 1) -> Component:
@@ -53,9 +63,13 @@ class World:
         Returns:
             The component.
         """
+        if name in self._components:
+            return self._components[name]
         nbytes = np.prod(shape) * dtype.itemsize
-        c = self._ptr.component(name, nbytes, dtype.alignment)
-        return Component(c, dtype, shape)
+        raw_component = self._ptr.component(name, nbytes, dtype.alignment)
+        c = Component(raw_component, dtype, shape)
+        self._components[name] = c
+        return c
 
     def component_from_example(self, name: str, example: npt.ArrayLike):
         """
@@ -68,5 +82,28 @@ class World:
         Returns:
             The component
         """
-        c = self._ptr.component(name, example.nbytes, example.dtype.alignment)
-        return Component(c, example.dtype, example.shape)
+        if name in self._components:
+            return self._components[name]
+        raw_component = self._ptr.component(name, example.nbytes,
+                                            example.dtype.alignment)
+        c = Component(raw_component, example.dtype, example.shape)
+        self._components[name] = c
+        return c
+
+    def tag(self, name: str) -> Entity:
+        """
+        Creates an empty component, which is a tag.
+        Args:
+            name: The name of the tag.
+
+        Returns:
+            The component representing the tag.
+        """
+        c = self._ptr.component(name, 0, 0)
+        return Entity(c)
+
+    def filter_builder(self, *args, **kwargs) -> FilterBuilder:
+        """
+        Creates a filter builder, which allows the user to setup a filter.
+        """
+        return FilterBuilder(self._ptr, *args, **kwargs)

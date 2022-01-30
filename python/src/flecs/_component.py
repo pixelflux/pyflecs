@@ -4,15 +4,16 @@ Provides access to the flecs component.
 import numpy as np
 from numpy.typing import DTypeLike
 
+from ._entity import Entity
 from ._types import ShapeLike
 
 
-class Component:
+class Component(Entity):
     """
     Wraps a flecs component
     """
     def __init__(self, ptr, dtype: DTypeLike, shape: ShapeLike):
-        self._ptr = ptr
+        super().__init__(ptr)
         self._dtype = dtype
 
         if isinstance(shape, int):
@@ -23,8 +24,8 @@ class Component:
         self._nbytes = np.prod(shape) * dtype.itemsize
 
     @property
-    def ptr(self):
-        return self._ptr
+    def is_component(self) -> bool:
+        return True
 
     def create_view(self, buffer: np.ndarray) -> np.ndarray:
         """

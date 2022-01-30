@@ -36,7 +36,7 @@ namespace pyflecs {
         entity(ecs_world_t* world, ecs_entity_t e);
         ~entity();
 
-        bool is_alive()
+        bool is_alive() const
         {
             return ecs_is_alive(mpWorld, mRaw);
         }
@@ -46,34 +46,94 @@ namespace pyflecs {
             ecs_delete(mpWorld, mRaw);
         }
 
-        std::string name()
+        std::string name() const
         {
             return std::string(ecs_get_name(mpWorld, mRaw));
         }
 
-        ecs_entity_t raw()
+        ecs_entity_t raw() const
         {
             return mRaw;
         }
 
-        void add(component &c)
+        void add(entity& c)
         {
             ecs_add_id(mpWorld, mRaw, c.raw());
         }
 
-        void set(component& c, const void* bytes)
+        void set(entity& c, uint32_t size, const void* bytes)
         {
-            ecs_set_id(mpWorld, mRaw, c.raw(), c.size(), bytes);
+            ecs_set_id(mpWorld, mRaw, c.raw(), size, bytes);
         }
 
-        const void* get(component& c)
+        const void* get(entity& c)
         {
             return ecs_get_id(mpWorld, mRaw, c.raw());
         }
 
-        void remove(component& c)
+        void remove(entity& c)
         {
             ecs_remove_id(mpWorld, mRaw, c.raw());
+        }
+
+        bool has(entity& c)
+        {
+            return ecs_has_id(mpWorld, mRaw, c.raw());
+        }
+
+        void add_pair(entity& c, entity& e)
+        {
+            ecs_add_id(mpWorld, mRaw, ecs_make_pair(c.raw(), e.raw()));
+        }
+
+        void remove_pair(entity& c, entity& e)
+        {
+            ecs_remove_id(mpWorld, mRaw, ecs_make_pair(c.raw(), e.raw()));
+        }
+
+        bool has_pair(entity& c, entity& e)
+        {
+            return ecs_has_id(mpWorld, mRaw, ecs_make_pair(c.raw(), e.raw()));
+        }
+
+        uint32_t size() const
+        {
+            const EcsComponent* c = ecs_get(mpWorld, mRaw, EcsComponent);
+            return c->size;
+        }
+
+        std::string path() const
+        {
+            char* data = ecs_get_fullpath(mpWorld, mRaw);
+            std::string result(data);
+            ecs_os_free(data);
+            return result;
+        }
+
+        void add_child(const entity& child)
+        {
+            ecs_add_pair(mpWorld, child.raw(), EcsChildOf, mRaw);
+        }
+
+        entity lookup(std::string name)
+        {
+            return entity(mpWorld, ecs_lookup_path(mpWorld, mRaw, 
+                name.c_str()));
+        }
+
+        void is_a(const entity& base)
+        {
+            ecs_add_pair(mpWorld, mRaw, EcsIsA, base.raw());
+        }
+
+        std::string type() const
+        {
+            // For now, return the string.
+            ecs_type_t type = ecs_get_type(mpWorld, mRaw);
+            char* data = ecs_type_str(mpWorld, type);
+            std::string result(data);
+            ecs_os_free(data);
+            return result;
         }
 
     private:
