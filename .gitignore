@@ -3,5 +3,6 @@
 .vs/
 out/
 *.pyd
+__pycache__/
 
 CMakeSettings.json

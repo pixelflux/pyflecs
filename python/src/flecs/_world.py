@@ -63,6 +63,7 @@ class World:
         Returns:
             The component.
         """
+        dtype = np.dtype(dtype)
         if name in self._components:
             return self._components[name]
         nbytes = np.prod(shape) * dtype.itemsize

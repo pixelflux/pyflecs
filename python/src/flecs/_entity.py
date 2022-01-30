@@ -44,7 +44,12 @@ class Entity:
     def add(self, component: 'Entity'):
         self._ptr.add(component.ptr)
 
-    def set(self, component: 'Entity', value: np.ndarray):
+    def set(self, component: 'Component', value: np.ndarray):
+        # Validate the value matches the component dtype
+        if value.dtype != component.dtype:
+            raise RuntimeError(f"Attempting to set component {component.name} "
+                               f"of dtype {component.dtype} to value with "
+                               f"dtype {value.dtype}")
         self._ptr.set(component.ptr, value.view('uint8'))
 
     def get(self, component: 'Component') -> np.ndarray:

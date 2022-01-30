@@ -27,6 +27,10 @@ class Component(Entity):
     def is_component(self) -> bool:
         return True
 
+    @property
+    def dtype(self) -> np.dtype:
+        return self._dtype
+
     def create_view(self, buffer: np.ndarray) -> np.ndarray:
         """
         This creates a view into the buffer that matches the component dtype.

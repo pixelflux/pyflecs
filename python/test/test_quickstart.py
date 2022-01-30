@@ -174,3 +174,108 @@ def test_filter():
 
         np.testing.assert_array_equal(pos_data, exp_pos + exp_vel)
         np.testing.assert_array_equal(vel_data, exp_vel)
+
+
+def test_multiple_filters():
+    """
+    Tests out multiple filters.
+    """
+    # Set the number of entitites
+    num_entities = 1000
+
+    world = flecs.World()
+
+    # Define three components
+    position = world.component("Position", 'float32', 3)
+    velocity = world.component("Velocity", 'float32', 3)
+    acceleration = world.component("Acceleration", 'float32', 3)
+
+    const_pos_tag = world.tag("Constant Position")
+    const_vel_tag = world.tag("Constant Velocity")
+    const_acc_tag = world.tag("Constant Acceleration")
+
+    # Also add 3 tags
+    tags = []
+    tags.append(world.tag("Good"))
+    tags.append(world.tag("Bad"))
+    tags.append(world.tag("Ugly"))
+
+    # Create the random positions
+    pos = np.zeros((num_entities, 3), dtype='float32') + 1
+    vel = np.zeros((num_entities, 3), dtype='float32') + 2
+    acc = np.zeros((num_entities, 3), dtype='float32') + 3
+
+    # Setup which components it should have with a random number
+    component_type = np.random.rand(num_entities)
+
+    # Setup which tag it should have
+    tag_type = np.random.rand(num_entities)
+
+    for idx in range(num_entities):
+        ctype = int(component_type[idx] > 0.33) + int(
+            component_type[idx] > 0.66)
+        component_type[idx] = ctype
+        ttype = int(tag_type[idx] > 0.33) + int(tag_type[idx] > 0.66)
+        tag_type[idx] = ttype
+
+    total_good = 0
+    for idx in range(num_entities):
+        e = world.entity()
+        e.set(position, pos[idx])
+        if component_type[idx] > 0:
+            e.set(velocity, vel[idx])
+        else:
+            e.add(const_pos_tag)
+        if component_type[idx] > 1:
+            e.set(acceleration, acc[idx])
+            e.add(const_acc_tag)
+        else:
+            e.add(const_vel_tag)
+
+        if tag_type[idx] == 0:
+            e.add(tags[0])
+            total_good += 1
+        elif tag_type[idx] == 1:
+            e.add(tags[1])
+        else:
+            e.add(tags[2])
+
+    filter_pos = world.filter_builder(position, const_pos_tag).build()
+    filter_vel = world.filter_builder(position, velocity, const_vel_tag).build()
+    filter_acc = world.filter_builder(
+        position, velocity, acceleration, const_acc_tag).build()
+
+    # Finally get a filter or concatenating all of the positions for "Good"
+    filter_good = world.filter_builder(position, tags[0]).build()
+
+    for val in filter_pos:
+        pos_data = val["Position"]
+        print(f"Constant Position: {len(pos_data)}")
+    for val in filter_vel:
+        pos_data = val["Position"]
+        vel_data = val["Velocity"]
+        pos_data += vel_data
+        print(f"Constant Velocity: {len(pos_data)}, {len(vel_data)}")
+
+    for val in filter_acc:
+        pos_data = val["Position"]
+        vel_data = val["Velocity"]
+        acc_data = val["Acceleration"]
+        pos_data += vel_data + 0.5 * acc_data ** 2
+        vel_data += acc_data
+        print(f"Constant Acceleration: {len(pos_data)}, {len(vel_data)}, "
+              f"{len(acc_data)}")
+
+    results = []
+    for val in filter_good:
+        results.append(val["Position"])
+    final_result = np.vstack(results)
+    cv_results = []
+    for val in filter_vel:
+        cv_results.append(val["Position"])
+    final_cv_results = np.vstack(cv_results)
+
+    assert total_good == len(final_result)
+    np.testing.assert_array_equal(final_cv_results[100], [3, 3, 3])
+    np.testing.assert_array_equal(final_cv_results[0], [3, 3, 3])
+
