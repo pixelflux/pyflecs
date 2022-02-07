@@ -21,6 +21,11 @@ def test_quickstart():
     assert int(e2) == int(e)
     assert e2 == e
 
+    # Create a new entity called "Bob"
+    e3 = world.entity("Bob")
+    assert int(e3) == int(e)
+    assert e3 == e
+
     # Lookup invalid name
     e3 = world.lookup("Something")
     assert e3 is None
@@ -255,7 +260,6 @@ def test_multiple_filters():
         pos_data = val["Position"]
         vel_data = val["Velocity"]
         pos_data += vel_data
-        print(f"Constant Velocity: {len(pos_data)}, {len(vel_data)}")
 
     for val in filter_acc:
         pos_data = val["Position"]
@@ -263,8 +267,6 @@ def test_multiple_filters():
         acc_data = val["Acceleration"]
         pos_data += vel_data + 0.5 * acc_data ** 2
         vel_data += acc_data
-        print(f"Constant Acceleration: {len(pos_data)}, {len(vel_data)}, "
-              f"{len(acc_data)}")
 
     results = []
     for val in filter_good:
@@ -279,3 +281,43 @@ def test_multiple_filters():
     np.testing.assert_array_equal(final_cv_results[100], [3, 3, 3])
     np.testing.assert_array_equal(final_cv_results[0], [3, 3, 3])
 
+
+def test_query():
+    """
+    Tests that the query works.
+    """
+    world = flecs.World()
+    e = world.entity()
+    e2 = world.entity()
+    pos = np.array([1, 4, 2], dtype='float32')
+    pos2 = np.array([9, 8, 7], dtype='float32')
+    vel = np.array([0, 1, 0], dtype='float32')
+    vel2 = np.array([-3.2, 0.1, -0.1], dtype='float32')
+    position = world.component_from_example("Position", pos)
+    velocity = world.component_from_example("Velocity", vel)
+
+    e.set(position, pos)
+    e.set(velocity, vel)
+    e2.set(position, pos2)
+    e2.set(velocity, vel2)
+
+    query = world.query_builder(position, velocity).build()
+
+    exp_pos = np.stack((pos, pos2))
+    exp_vel = np.stack((vel, vel2))
+
+    for val in query:
+        pos_data = val["Position"]
+        vel_data = val["Velocity"]
+
+        np.testing.assert_array_equal(pos_data, exp_pos)
+        np.testing.assert_array_equal(vel_data, exp_vel)
+
+        pos_data += vel_data
+
+    for val in query:
+        pos_data = val["Position"]
+        vel_data = val["Velocity"]
+
+        np.testing.assert_array_equal(pos_data, exp_pos + exp_vel)
+        np.testing.assert_array_equal(vel_data, exp_vel)

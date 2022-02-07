@@ -60,6 +60,11 @@ pyflecs::entity world::lookup_path(std::string name)
     return pyflecs::entity(mpRaw, ecs_lookup_path(mpRaw, 0, name.c_str()));
 }
 
+pyflecs::entity world::lookup_by_id(ecs_entity_t eid)
+{
+    return pyflecs::entity(mpRaw, eid);
+}
+
 pyflecs::entity world::component(std::string name, size_t size, 
     size_t alignment)
 {
@@ -76,7 +81,7 @@ pyflecs::entity world::component(std::string name, size_t size,
 }
 
 pyflecs::filter world::create_filter(std::string name, 
-    std::string expr, std::vector<pyflecs::entity> terms)
+    std::string expr, std::vector<ecs_term_t> terms)
 {
     ecs_filter_t f;
     ecs_filter_desc_t desc{};
@@ -91,9 +96,33 @@ pyflecs::filter world::create_filter(std::string name,
     {
         for (auto idx = 0; idx < terms.size(); idx++)
         {
-            desc.terms[idx] = ecs_term_t{ terms[idx].raw() };
+            desc.terms[idx] = terms[idx];
         }
-    }    ecs_filter_init(mpRaw, &f, &desc);
+    }    
+    ecs_filter_init(mpRaw, &f, &desc);
 
     return pyflecs::filter(mpRaw, f);
+}
+
+pyflecs::query world::create_query(std::string name,
+    std::string expr, std::vector<ecs_term_t> terms)
+{
+    ecs_query_desc_t desc{};
+    desc.filter.name = name.c_str();
+    desc.filter.expr = expr.c_str();
+
+    if (terms.size() > ECS_TERM_DESC_CACHE_SIZE)
+    {
+        // TODO
+    }
+    else
+    {
+        for (auto idx = 0; idx < terms.size(); idx++)
+        {
+            desc.filter.terms[idx] = terms[idx];
+        }
+    }    
+    auto q = ecs_query_init(mpRaw, &desc);
+
+    return pyflecs::query(mpRaw, q);
 }

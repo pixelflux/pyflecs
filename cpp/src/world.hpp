@@ -26,6 +26,7 @@
 #include "entity.hpp"
 #include "component.hpp"
 #include "filter.hpp"
+#include "query.hpp"
 
 #include <string>
 #include <vector>
@@ -44,12 +45,15 @@ namespace pyflecs {
         pyflecs::entity entity(std::string name);
         pyflecs::entity lookup(std::string name);
         pyflecs::entity lookup_path(std::string name);
+        pyflecs::entity lookup_by_id(ecs_entity_t eid);
 
         pyflecs::entity component(std::string name, size_t size, 
             size_t alignment);
 
         pyflecs::filter create_filter(std::string name, std::string expr, 
-            std::vector<pyflecs::entity> terms);
+            std::vector<ecs_term_t> terms);
+        pyflecs::query create_query(std::string name, std::string expr,
+            std::vector<ecs_term_t> terms);
 
         ecs_world_t* raw()
         {

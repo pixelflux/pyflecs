@@ -24,30 +24,23 @@
 
 #include "flecs.h"
 #include "entity.hpp"
-#include "iter.hpp"
 
 
 namespace pyflecs {
 
-    class filter final {
+    class iter final {
     public:
-        filter(ecs_world_t* world, ecs_filter_t filter);
+        iter(ecs_iter_t iter);
 
-        pyflecs::iter iter();
-
-        int32_t term_count() const
+        bool next();
+        void* term(entity& e, int32_t idx);
+        int32_t count()
         {
-            return mRaw.term_count;
-        }
-
-        const ecs_term_t& terms(size_t idx) const
-        {
-            assert(idx < mRaw.term_count);
-            return mRaw.terms[idx];
+            return mRaw.count;
         }
 
     private:
-        ecs_world_t* mpWorld;
-        ecs_filter_t mRaw;
+        ecs_iter_t mRaw;
+
     };
 }

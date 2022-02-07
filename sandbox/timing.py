@@ -8,7 +8,7 @@ import flecs
 
 
 # Set the number of entitites
-num_entities = 1000000
+num_entities = 100000
 
 world = flecs.World()
 
@@ -62,12 +62,12 @@ for idx in range(num_entities):
 print(f"Took {time.time() - start_time} for component creation")
 
 # Now do a loop where we handle each component type
-filter_pos = world.filter_builder(position).build()
-filter_vel = world.filter_builder(position, velocity).build()
-filter_acc = world.filter_builder(position, velocity, acceleration).build()
+filter_pos = world.query_builder(position).build()
+filter_vel = world.query_builder(position, velocity).build()
+filter_acc = world.query_builder(position, velocity, acceleration).build()
 
 # Finally get a filter or concatenating all of the positions for "Good"
-filter_good = world.filter_builder(position, tags[0]).build()
+filter_good = world.query_builder(position, tags[0]).build()
 
 start_time = time.time()
 for val in filter_pos:

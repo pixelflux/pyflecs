@@ -25,29 +25,35 @@
 #include "flecs.h"
 #include "entity.hpp"
 #include "iter.hpp"
+#include "filter.hpp"
 
 
 namespace pyflecs {
 
-    class filter final {
+    class query final {
     public:
-        filter(ecs_world_t* world, ecs_filter_t filter);
-
+        query(ecs_world_t* world, ecs_query_t* query);
         pyflecs::iter iter();
 
         int32_t term_count() const
         {
-            return mRaw.term_count;
+            return filter()->term_count;
         }
 
         const ecs_term_t& terms(size_t idx) const
         {
-            assert(idx < mRaw.term_count);
-            return mRaw.terms[idx];
+            auto f = filter();
+            assert(idx < f->term_count());
+            return f->terms[idx];
         }
 
     private:
+        const ecs_filter_t* filter() const
+        {
+            return ecs_query_get_filter(mpRaw);
+        }
+
         ecs_world_t* mpWorld;
-        ecs_filter_t mRaw;
+        ecs_query_t* mpRaw;
     };
 }

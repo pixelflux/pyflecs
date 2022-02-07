@@ -20,34 +20,24 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#include "filter.hpp"
+#include <iostream>
 
-#include "flecs.h"
-#include "entity.hpp"
-#include "iter.hpp"
+using namespace pyflecs;
 
+iter::iter(ecs_iter_t iter) :
+    mRaw(iter)
+{
 
-namespace pyflecs {
-
-    class filter final {
-    public:
-        filter(ecs_world_t* world, ecs_filter_t filter);
-
-        pyflecs::iter iter();
-
-        int32_t term_count() const
-        {
-            return mRaw.term_count;
-        }
-
-        const ecs_term_t& terms(size_t idx) const
-        {
-            assert(idx < mRaw.term_count);
-            return mRaw.terms[idx];
-        }
-
-    private:
-        ecs_world_t* mpWorld;
-        ecs_filter_t mRaw;
-    };
 }
+
+bool iter::next()
+{
+    return ecs_iter_next(&mRaw);
+}
+
+void* iter::term(entity& e, int32_t idx)
+{
+    return ecs_term_w_size(&mRaw, e.size(), idx);
+}
+

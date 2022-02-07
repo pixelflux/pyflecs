@@ -50,7 +50,7 @@ py::array_t<uint8_t> wrap_entity_get(entity* e, entity* c)
     return py::array_t<uint8_t>(c->size(), ptr, dummy);
 }
 
-py::array_t<uint8_t> wrap_filter_iter_term(filter_iter *iter, entity& e, 
+py::array_t<uint8_t> wrap_iter_term(pyflecs::iter *iter, entity& e,
     int32_t idx)
 {
     auto result = reinterpret_cast<const uint8_t*>(iter->term(e, idx));
@@ -61,6 +61,20 @@ py::array_t<uint8_t> wrap_filter_iter_term(filter_iter *iter, entity& e,
 
 PYBIND11_MODULE(_flecs, m) {
     m.doc() = "Python bindings to flecs library";
+
+    py::enum_<ecs_inout_kind_t>(m, "ecs_inout_kind_t")
+        .value("Default", ecs_inout_kind_t::EcsInOutDefault)
+        .value("Filter", ecs_inout_kind_t::EcsInOutFilter)
+        .value("InOut", ecs_inout_kind_t::EcsInOut)
+        .value("In", ecs_inout_kind_t::EcsIn)
+        .value("Out", ecs_inout_kind_t::EcsOut)
+        .export_values();
+
+    py::class_<ecs_term_t>(m, "ecs_term_t")
+        .def(py::init<>())
+        .def_readwrite("id", &ecs_term_t::id)
+        .def_readwrite("inout", &ecs_term_t::inout)
+        ;
 
     py::class_<entity>(m, "entity")
         .def("is_alive", &entity::is_alive)
@@ -90,14 +104,22 @@ PYBIND11_MODULE(_flecs, m) {
         .def("type", &entity::type)
         ;
 
-    py::class_<filter_iter>(m, "filter_iter")
-        .def("next", &filter_iter::next)
-        .def("term", &wrap_filter_iter_term, 
+    py::class_<pyflecs::iter>(m, "iter")
+        .def("next", &iter::next)
+        .def("term", &wrap_iter_term, 
             py::return_value_policy::reference)
         ;
 
     py::class_<filter>(m, "filter")
         .def("iter", &filter::iter)
+        .def("term_count", &filter::term_count)
+        .def("terms", &filter::terms)
+        ;
+
+    py::class_<query>(m, "query")
+        .def("iter", &query::iter)
+        .def("term_count", &query::term_count)
+        .def("terms", &query::terms)
         ;
 
     py::class_<world>(m, "world")
@@ -106,8 +128,10 @@ PYBIND11_MODULE(_flecs, m) {
         .def("entity", py::overload_cast<std::string>(&world::entity))
         .def("lookup", &world::lookup)
         .def("lookup_path", &world::lookup_path)
+        .def("lookup_by_id", &world::lookup_by_id)
         .def("component", &world::component)
         .def("create_filter", &world::create_filter)
+        .def("create_query", &world::create_query)
         ;
 
 }

@@ -12,6 +12,7 @@ from ._entity import Entity
 from ._component import Component
 from ._types import ShapeLike
 from ._filter import FilterBuilder
+from ._query import QueryBuilder
 
 
 class World:
@@ -24,6 +25,10 @@ class World:
 
         # Also store a dictionary of all components.
         self._components = {}
+
+    @property
+    def ptr(self):
+        return self._ptr
 
     def entity(self, name: Optional[str] = None) -> Entity:
         """
@@ -48,6 +53,14 @@ class World:
         ptr = self._ptr.lookup_path(name)
         return None if ptr.raw() == 0 else Entity(ptr)
 
+    def lookup_by_id(self, eid: int) -> Optional[Entity]:
+        e = self._ptr.lookup_by_id(eid)
+        name = e.name()
+        if name in self._components:
+            return self._components[name]
+        else:
+            return Entity(e)
+
     def component(self, name: str, dtype: npt.DTypeLike,
                   shape: ShapeLike = 1) -> Component:
         """
@@ -63,9 +76,9 @@ class World:
         Returns:
             The component.
         """
-        dtype = np.dtype(dtype)
         if name in self._components:
             return self._components[name]
+        dtype = np.dtype(dtype)
         nbytes = np.prod(shape) * dtype.itemsize
         raw_component = self._ptr.component(name, nbytes, dtype.alignment)
         c = Component(raw_component, dtype, shape)
@@ -107,4 +120,10 @@ class World:
         """
         Creates a filter builder, which allows the user to setup a filter.
         """
-        return FilterBuilder(self._ptr, *args, **kwargs)
+        return FilterBuilder(self, *args, **kwargs)
+
+    def query_builder(self, *args, **kwargs) -> QueryBuilder:
+        """
+        Creates a query builder, which allows the user to setup a query.
+        """
+        return QueryBuilder(self, *args, **kwargs)

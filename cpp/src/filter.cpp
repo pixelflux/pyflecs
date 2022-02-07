@@ -24,22 +24,6 @@
 
 using namespace pyflecs;
 
-filter_iter::filter_iter(ecs_iter_t iter) : 
-    mRaw(iter)
-{
-
-}
-
-bool filter_iter::next()
-{
-    return ecs_iter_next(&mRaw);
-}
-
-void* filter_iter::term(entity& e, int32_t idx)
-{
-    return ecs_term_w_size(&mRaw, e.size(), idx);
-}
-
 
 filter::filter(ecs_world_t* world, ecs_filter_t f) :
     mpWorld(world),
@@ -48,7 +32,7 @@ filter::filter(ecs_world_t* world, ecs_filter_t f) :
 
 }
 
-filter_iter filter::iter()
+pyflecs::iter filter::iter()
 {
-    return filter_iter(ecs_filter_iter(mpWorld, &mRaw));
+    return pyflecs::iter(ecs_filter_iter(mpWorld, &mRaw));
 }
