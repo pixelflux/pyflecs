@@ -48,7 +48,11 @@ namespace pyflecs {
 
         std::string name() const
         {
-            return std::string(ecs_get_name(mpWorld, mRaw));
+            const char* result = ecs_get_name(mpWorld, mRaw);
+            if (result != nullptr)
+                return std::string(result);
+            else
+                return std::string();
         }
 
         ecs_entity_t raw() const

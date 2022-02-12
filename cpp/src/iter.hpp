@@ -38,6 +38,11 @@ namespace pyflecs {
         {
             return mRaw.count;
         }
+        ecs_entity_t get_entity(size_t idx)
+        {
+            return mRaw.entities[idx];
+        }
+        
 
     private:
         ecs_iter_t mRaw;

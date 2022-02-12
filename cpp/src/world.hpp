@@ -55,6 +55,11 @@ namespace pyflecs {
         pyflecs::query create_query(std::string name, std::string expr,
             std::vector<ecs_term_t> terms);
 
+        pyflecs::iter create_term_iter(ecs_term_t* term)
+        {
+            return pyflecs::iter(ecs_term_iter(mpRaw, term));
+        }
+
         ecs_world_t* raw()
         {
             return mpRaw;

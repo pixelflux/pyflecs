@@ -43,7 +43,7 @@ namespace pyflecs {
         const ecs_term_t& terms(size_t idx) const
         {
             auto f = filter();
-            assert(idx < f->term_count());
+            assert(idx < f->term_count);
             return f->terms[idx];
         }
 

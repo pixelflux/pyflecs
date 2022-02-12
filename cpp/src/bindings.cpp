@@ -59,6 +59,21 @@ py::array_t<uint8_t> wrap_iter_term(pyflecs::iter *iter, entity& e,
     return py::array_t<uint8_t>(size, result, dummy);
 }
 
+void wrap_world_set(world* w, entity* c,
+    py::array_t<uint8_t, py::array::c_style | py::array::forcecast> data)
+{
+    // The world's entity set for a singleton is just setting the entity
+    // to the component.
+    if (!c->has(*c))
+        c->add(*c);
+    wrap_entity_set(c, c, data);
+}
+
+py::array_t<uint8_t> wrap_world_get(world* w, entity* c)
+{
+    return wrap_entity_get(c, c);
+}
+
 PYBIND11_MODULE(_flecs, m) {
     m.doc() = "Python bindings to flecs library";
 
@@ -106,7 +121,9 @@ PYBIND11_MODULE(_flecs, m) {
 
     py::class_<pyflecs::iter>(m, "iter")
         .def("next", &iter::next)
-        .def("term", &wrap_iter_term, 
+        .def("count", &iter::count)
+        .def("get_entity", &iter::get_entity)
+        .def("term", &wrap_iter_term,
             py::return_value_policy::reference)
         ;
 
@@ -132,6 +149,9 @@ PYBIND11_MODULE(_flecs, m) {
         .def("component", &world::component)
         .def("create_filter", &world::create_filter)
         .def("create_query", &world::create_query)
+        .def("create_term_iter", &world::create_term_iter)
+        .def("set", &wrap_world_set)
+        .def("get", &wrap_world_get, py::return_value_policy::reference)
         ;
 
 }
