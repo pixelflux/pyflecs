@@ -5,13 +5,15 @@ from typing import TYPE_CHECKING, List, Optional, Union
 from collections import namedtuple
 
 import flecs._flecs as _flecs
+
+from ._component import Component
 from ._entity import Entity
 
 if TYPE_CHECKING:
     from ._world import World
 
 
-_ComponentEntry = namedtuple("_ComponentEntry", ['component', 'index'])
+ComponentEntry = namedtuple("ComponentEntry", ['component', 'index'])
 """Defines an object for storing component information."""
 
 
@@ -39,15 +41,55 @@ class Term:
         self._ptr.id = val.ptr.raw()
 
 
+class EntitiesIter:
+    """
+    Provides a helper wrapper around the entities attached to a FilterIter.
+    """
+    def __init__(self, ptr, world: 'World'):
+        # Uses the same pointer as the FilterIter.
+        self._ptr = ptr
+        self._world = world
+        self._idx = 0
+
+    def __len__(self):
+        return self._ptr.count()
+
+    def __getitem__(self, item) -> Union[List[Entity], Entity]:
+        if isinstance(item, slice):
+            results = []
+            start_idx = item.start or 0
+            end_idx = item.stop or len(self)
+            step = item.step or 1
+            for idx in range(start_idx, end_idx, step):
+                results.append(self._world.lookup_by_id(
+                    self._ptr.get_entity(idx)))
+            return results
+        else:
+            e = self._ptr.get_entity(item)
+            return self._world.lookup_by_id(e)
+
+    def __next__(self):
+        if self._idx >= len(self):
+            raise StopIteration
+        self._idx += 1
+        return self[self._idx - 1]
+
+    def __iter__(self):
+        self._idx = 0
+        return self
+
+
 class FilterIter:
     """
     Provides a wrapper around iteration of a filter.
     """
-    def __init__(self, ptr, components: List[_ComponentEntry]):
+    def __init__(self, ptr, world: 'World',
+                 components: List[ComponentEntry]):
         self._ptr = ptr
-        self._components = components
+        self._world = world
 
         # Create a dictionary of the components as well
+        self._components = components
         self._component_dict = {val.component.name: val for val in components}
 
     def __next__(self):
@@ -55,6 +97,9 @@ class FilterIter:
             return self
         else:
             raise StopIteration
+
+    def __iter__(self):
+        return self
 
     def __getitem__(self, item):
         if isinstance(item, int):
@@ -64,6 +109,18 @@ class FilterIter:
         return info.component.create_view(
             self._ptr.term(info.component.ptr, info.index))
 
+    @property
+    def entities(self) -> EntitiesIter:
+        """
+        Returns the entity for the given index.
+        Args:
+            idx: The index to retrieve the entity.
+
+        Returns:
+            An EntitiesIter object.
+        """
+        return EntitiesIter(self._ptr, self._world)
+
 
 class Filter:
     """
@@ -71,30 +128,29 @@ class Filter:
     """
     def __init__(self, ptr, world: 'World'):
         self._ptr = ptr
+        self._world = world
 
         # Lookup components
         self._components = []
         for idx in range(ptr.term_count()):
             term = ptr.terms(idx)
             component = world.lookup_by_id(term.id)
-            self._components.append(_ComponentEntry(
+            self._components.append(ComponentEntry(
                 component=component, index=idx+1))
 
     def __iter__(self) -> FilterIter:
-        return FilterIter(self._ptr.iter(), self._components)
+        return FilterIter(self._ptr.iter(), self._world, self._components)
 
 
 class FilterBuilder:
     """
     Class for building up a filter.
     """
-    def __init__(self, world: 'World', *args, name: str = ''):
+    def __init__(self, world: 'World', *args, name: str = '', expr: str = ''):
         self._world = world
         self._terms = []
         self._components = []
-        # For now, do not support expr. Otherwise we would need to parse it to
-        # identify the components.
-        self._expr = ''
+        self._expr = expr
         self._name = name
 
         for arg in args:
@@ -120,6 +176,16 @@ class FilterBuilder:
     @property
     def expr(self) -> str:
         return self._expr
+
+    @expr.setter
+    def expr(self, val: str):
+        """
+        Sets the expression for the filter.
+
+        Args:
+            val: The expression string
+        """
+        self._expr = val
 
     @property
     def name(self) -> str:

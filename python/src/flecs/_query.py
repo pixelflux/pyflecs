@@ -3,7 +3,7 @@ Wraps the query. The query is different from a filter, but includes a filter.
 """
 from typing import TYPE_CHECKING
 
-from ._filter import FilterIter, FilterBuilder, _ComponentEntry
+from ._filter import FilterIter, FilterBuilder, ComponentEntry
 
 if TYPE_CHECKING:
     from ._world import World
@@ -17,17 +17,18 @@ class Query:
     """
     def __init__(self, ptr, world: 'World'):
         self._ptr = ptr
+        self._world = world
 
         # Lookup components
         self._components = []
         for idx in range(ptr.term_count()):
             term = ptr.terms(idx)
             component = world.lookup_by_id(term.id)
-            self._components.append(_ComponentEntry(
+            self._components.append(ComponentEntry(
                 component=component, index=idx + 1))
 
     def __iter__(self):
-        return FilterIter(self._ptr.iter(), self._components)
+        return FilterIter(self._ptr.iter(), self._world, self._components)
 
 
 class QueryBuilder(FilterBuilder):

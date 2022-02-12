@@ -140,6 +140,54 @@ def test_type():
     assert e.type == 'Position, Velocity'
 
 
+def test_singleton():
+    """
+    Tests that the singleton works.
+    """
+    world = flecs.World()
+    pos = np.array([1, 2, 3], dtype='float32')
+    position = world.component_from_example("Position", pos)
+    world.set(position, pos)
+
+    data = world.get("Position")
+
+    np.testing.assert_array_equal(pos, data)
+
+    # Also validate the simpler interface
+    vel = np.array([4, 5, 6], dtype='float32')
+    world.set("Velocity", vel)
+    data = world.get("Velocity")
+
+    np.testing.assert_array_equal(vel, data)
+
+
+def test_term():
+    """
+    Creates a simple term and iterates over it.
+    """
+    world = flecs.World()
+    e = world.entity()
+    e2 = world.entity()
+    pos = np.array([1, 4, 2], dtype='float32')
+    pos2 = np.array([9, 8, 7], dtype='float32')
+    position = world.component_from_example("Position", pos)
+
+    e.set(position, pos)
+    e2.set(position, pos2)
+
+    results = []
+
+    for val in world.each(position):
+        results.append(val['Position'])
+    np.testing.assert_array_equal(np.vstack([pos, pos2]), results[0])
+
+    # Verify it also works for a string
+    results = []
+    for val in world.each("Position"):
+        results.append(val['Position'])
+    np.testing.assert_array_equal(np.vstack([pos, pos2]), results[0])
+
+
 def test_filter():
     """
     Tests that the filter works.
@@ -172,6 +220,11 @@ def test_filter():
         np.testing.assert_array_equal(vel_data, exp_vel)
 
         pos_data += vel_data
+
+        assert e == val.entities[0]
+        assert e2 == val.entities[1]
+
+        assert [e, e2] == val.entities[:]
 
     for val in filter:
         pos_data = val["Position"]
@@ -302,6 +355,47 @@ def test_query():
     e2.set(velocity, vel2)
 
     query = world.query_builder(position, velocity).build()
+
+    exp_pos = np.stack((pos, pos2))
+    exp_vel = np.stack((vel, vel2))
+
+    for val in query:
+        pos_data = val["Position"]
+        vel_data = val["Velocity"]
+
+        np.testing.assert_array_equal(pos_data, exp_pos)
+        np.testing.assert_array_equal(vel_data, exp_vel)
+
+        pos_data += vel_data
+
+    for val in query:
+        pos_data = val["Position"]
+        vel_data = val["Velocity"]
+
+        np.testing.assert_array_equal(pos_data, exp_pos + exp_vel)
+        np.testing.assert_array_equal(vel_data, exp_vel)
+
+
+def test_query_expr():
+    """
+    Tests that a query works with an expression.
+    """
+    world = flecs.World()
+    e = world.entity()
+    e2 = world.entity()
+    pos = np.array([1, 4, 2], dtype='float32')
+    pos2 = np.array([9, 8, 7], dtype='float32')
+    vel = np.array([0, 1, 0], dtype='float32')
+    vel2 = np.array([-3.2, 0.1, -0.1], dtype='float32')
+    position = world.component_from_example("Position", pos)
+    velocity = world.component_from_example("Velocity", vel)
+
+    e.set(position, pos)
+    e.set(velocity, vel)
+    e2.set(position, pos2)
+    e2.set(velocity, vel2)
+
+    query = world.query_builder(expr='Position, Velocity').build()
 
     exp_pos = np.stack((pos, pos2))
     exp_vel = np.stack((vel, vel2))

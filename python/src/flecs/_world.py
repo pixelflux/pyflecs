@@ -2,7 +2,7 @@
 Provides access to the flecs world. This should approximately match the
 flecs::world C++ API.
 """
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -11,7 +11,7 @@ import flecs._flecs as _flecs
 from ._entity import Entity
 from ._component import Component
 from ._types import ShapeLike
-from ._filter import FilterBuilder
+from ._filter import FilterBuilder, FilterIter, Term, ComponentEntry
 from ._query import QueryBuilder
 
 
@@ -127,3 +127,62 @@ class World:
         Creates a query builder, which allows the user to setup a query.
         """
         return QueryBuilder(self, *args, **kwargs)
+
+    def set(self, component: Union[str, Component], data: np.ndarray):
+        """
+        Sets the singleton value in the world.
+
+        Args:
+            component: The component/component name to set.
+            data: The data to set.
+        """
+        if isinstance(component, str):
+            name = component
+            component = self._components.get(name, None)
+            if component is None:
+                component = self.component_from_example(name, data)
+        self._ptr.set(component.ptr, data.view('uint8'))
+
+    def get(self, component: Union[str, Component]) -> np.ndarray:
+        """
+        Gets the singleton value.
+
+        Args:
+            component: The component to retrieve.
+
+        Returns:
+            The data associated with the singleton.
+        """
+        if isinstance(component, str):
+            name = component
+            component = self._components.get(name, None)
+            if component is None:
+                raise RuntimeError(f"Attempting to get component {component} "
+                                   f"singleton which does not exist.")
+        return component.create_view(self._ptr.get(component.ptr))[0]
+
+    def each(self, term: Union[str, Component, Term]) -> FilterIter:
+        """
+        Iterates through a single component. This creates a term_iter, but
+        uses the FilterIter.
+
+        Args:
+            term: The component or Term.
+
+        Returns:
+            A FilterIter object.
+        """
+        if isinstance(term, str):
+            name = term
+            term = self._components.get(name, None)
+            if term is None:
+                raise RuntimeError(f"Attempting to iterate over {name} but "
+                                   f"component does not exist.")
+        if isinstance(term, Component):
+            term = Term(term)
+
+        term_iter = self._ptr.create_term_iter(term.ptr)
+        component = self.lookup_by_id(term.id)
+        # NOTE: term_iter seems to have two values: the component as well as
+        # the
+        return FilterIter(term_iter, self, [ComponentEntry(component, 1)])
