@@ -308,7 +308,6 @@ def test_multiple_filters():
 
     for val in filter_pos:
         pos_data = val["Position"]
-        print(f"Constant Position: {len(pos_data)}")
     for val in filter_vel:
         pos_data = val["Position"]
         vel_data = val["Velocity"]

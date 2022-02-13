@@ -92,6 +92,12 @@ class FilterIter:
         self._components = components
         self._component_dict = {val.component.name: val for val in components}
 
+    def __contains__(self, item):
+        return item in self._component_dict
+
+    def __len__(self) -> int:
+        return self._ptr.count()
+
     def __next__(self):
         if self._ptr.next():
             return self
@@ -107,7 +113,11 @@ class FilterIter:
         else:
             info = self._component_dict[item]
         return info.component.create_view(
-            self._ptr.term(info.component.ptr, info.index))
+            self._ptr.data(info.component.ptr, info.index))
+
+    @property
+    def term_count(self) -> int:
+        return self._ptr.term_count()
 
     @property
     def entities(self) -> EntitiesIter:

@@ -30,17 +30,53 @@ class World:
     def ptr(self):
         return self._ptr
 
-    def entity(self, name: Optional[str] = None) -> Entity:
+    @property
+    def prefab_entity(self) -> Entity:
+        """
+        Returns the EcsPrefab entity.
+        """
+        return Entity(self._ptr.EcsPrefab())
+
+    @property
+    def childof_entity(self) -> Entity:
+        """
+        Returns the EcsChildOf entity.
+        """
+        return Entity(self._ptr.EcsChildOf())
+
+    @property
+    def isa_entity(self) -> Entity:
+        """
+        Returns the EcsChildOf entity.
+        """
+        return Entity(self._ptr.EcsIsA())
+
+    def prefab(self) -> Entity:
+        """
+        Returns the Prefab entity. This can be used to create, add, or remove
+        from an entity that should be marked as prefab.
+        Returns:
+            The EcsPrefab entity.
+        """
+        return Entity(self._ptr.entity(self.prefab_entity.ptr))
+
+    def entity(self, arg: Optional[Union[str, Entity]] = None) -> Entity:
         """
         Creates an entity with the given name.
 
         Args:
-            name: The name of the entity.
+            arg: Either a string name for the entity, or a component to use
+                when creating the entity.
 
         Returns:
             The entity object.
         """
-        e = self._ptr.entity() if name is None else self._ptr.entity(name)
+        if arg is not None:
+            if isinstance(arg, Entity):
+                arg = arg.ptr
+            e = self._ptr.entity(arg)
+        else:
+            e = self._ptr.entity()
         return Entity(e)
 
     def lookup(self, name: str) -> Optional[Entity]:
