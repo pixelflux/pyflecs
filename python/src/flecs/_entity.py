@@ -8,6 +8,24 @@ if TYPE_CHECKING:
     from ._component import Component
 
 
+class Type:
+    """
+    Provides a wrapper around the ecs_type_t. This is really an array of
+    components, and typically only accessed for debugging purposes.
+    """
+    def __init__(self, ptr):
+        self._ptr = ptr
+
+    def __repr__(self):
+        return self._ptr.string()
+
+    def __str__(self):
+        return self._ptr.string()
+
+    def __len__(self):
+        return self._ptr.length()
+
+
 class Entity:
     """
     Provides a wrapper around the Flecs entity object.
@@ -38,6 +56,14 @@ class Entity:
         return False
 
     @property
+    def is_valid(self) -> bool:
+        return self._ptr.is_valid()
+
+    @property
+    def type(self) -> Type:
+        return Type(self._ptr.type())
+
+    @property
     def name(self) -> str:
         return self._ptr.name()
 
@@ -59,15 +85,18 @@ class Entity:
 
     def remove(self, component: 'Entity'):
         self._ptr.remove(component.ptr)
+        return self
 
     def has(self, component: 'Entity') -> bool:
         return self._ptr.has(component.ptr)
 
     def add_pair(self, component: 'Entity', other: 'Entity'):
         self._ptr.add_pair(component.ptr, other.ptr)
+        return self
 
     def remove_pair(self, component: 'Entity', other: 'Entity'):
         self._ptr.remove_pair(component.ptr, other.ptr)
+        return self
 
     def set_pair(self, component: 'Component', other: 'Entity',
                  value: np.ndarray):
@@ -95,10 +124,6 @@ class Entity:
     def is_a(self, e: 'Entity'):
         self._ptr.is_a(e.ptr)
 
-    @property
-    def type(self) -> str:
-        return self._ptr.type()
-
     def __repr__(self) -> str:
         return f"Entity({self._ptr.raw()})"
 
@@ -110,3 +135,25 @@ class Entity:
 
     def __eq__(self, other):
         return int(self) == int(other)
+
+
+class Pair:
+    """
+    Wraps a pair
+    """
+    def __init__(self, ptr, relation: Entity, obj: Entity):
+        self._ptr = ptr
+        self._relation = relation
+        self._object = obj
+
+    @property
+    def ptr(self):
+        return self._ptr
+
+    @property
+    def relation(self) -> Entity:
+        return self._relation
+
+    @property
+    def object(self) -> Entity:
+        return self._object

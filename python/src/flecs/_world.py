@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 
 import flecs._flecs as _flecs
-from ._entity import Entity
+from ._entity import Entity, Pair
 from ._component import Component
 from ._types import ShapeLike
 from ._filter import FilterBuilder, FilterIter, Term, ComponentEntry
@@ -79,6 +79,9 @@ class World:
             e = self._ptr.entity()
         return Entity(e)
 
+    def pair(self, e: Entity, other: Entity) -> Pair:
+        return Pair(self._ptr.pair(e.ptr, other.ptr), e, other)
+
     def lookup(self, name: str) -> Optional[Entity]:
         if name in self._components:
             return self._components[name]
@@ -89,13 +92,19 @@ class World:
         ptr = self._ptr.lookup_path(name)
         return None if ptr.raw() == 0 else Entity(ptr)
 
-    def lookup_by_id(self, eid: int) -> Optional[Entity]:
-        e = self._ptr.lookup_by_id(eid)
-        name = e.name()
-        if name in self._components:
-            return self._components[name]
+    def lookup_by_id(self, eid: int) -> Union[Entity, Pair]:
+        eid = self._ptr.lookup_by_id(eid)
+        if eid.is_pair():
+            relation = self.lookup_by_id(eid.relation().raw())
+            object = self.lookup_by_id(eid.object().raw())
+            return Pair(eid, relation, object)
         else:
-            return Entity(e)
+            e = eid.as_entity()
+            name = e.name()
+            if name in self._components:
+                return self._components[name]
+            else:
+                return Entity(e)
 
     def component(self, name: str, dtype: npt.DTypeLike,
                   shape: ShapeLike = 1) -> Component:

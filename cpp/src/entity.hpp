@@ -23,17 +23,46 @@
 #pragma once
 
 #include "flecs.h"
-#include "component.hpp"
 #include <string>
 
 
 namespace pyflecs {
     /**
+     * Wraps the entity type. 
+     */
+    class type final {
+    public:
+        type(ecs_world_t* world, ecs_type_t t) : 
+            mpWorld(world),
+            mRaw(t)
+        {
+
+        }
+
+        size_t length()
+        {
+            return ecs_vector_count(mRaw);
+        }
+
+        std::string string()
+        {
+            char* data = ecs_type_str(mpWorld, mRaw);
+            std::string result(data);
+            ecs_os_free(data);
+            return result;
+        }
+
+    private:
+        ecs_world_t* mpWorld;
+        ecs_type_t mRaw;
+    };
+
+    /**
      * Approximates the flecs C++ class interface for an entity.
      */
     class entity final {
     public:
-        entity(ecs_world_t* world, ecs_entity_t e);
+        entity(ecs_world_t* world, const ecs_entity_t e);
         ~entity();
 
         bool is_alive() const
@@ -87,17 +116,22 @@ namespace pyflecs {
 
         void add_pair(entity& c, entity& e)
         {
-            ecs_add_id(mpWorld, mRaw, ecs_make_pair(c.raw(), e.raw()));
+            ecs_add_pair(mpWorld, mRaw, c.raw(), e.raw());
         }
 
         void remove_pair(entity& c, entity& e)
         {
-            ecs_remove_id(mpWorld, mRaw, ecs_make_pair(c.raw(), e.raw()));
+            ecs_remove_pair(mpWorld, mRaw, c.raw(), e.raw());
         }
 
         bool has_pair(entity& c, entity& e)
         {
             return ecs_has_id(mpWorld, mRaw, ecs_make_pair(c.raw(), e.raw()));
+        }
+
+        void set_pair(entity& c, entity& e, uint32_t size, const void* bytes)
+        {
+            ecs_set_id(mpWorld, mRaw, ecs_pair(c.raw(), e.raw()), size, bytes);
         }
 
         uint32_t size() const
@@ -130,19 +164,52 @@ namespace pyflecs {
             ecs_add_pair(mpWorld, mRaw, EcsIsA, base.raw());
         }
 
-        std::string type() const
+        pyflecs::type type()
         {
             // For now, return the string.
-            ecs_type_t type = ecs_get_type(mpWorld, mRaw);
-            char* data = ecs_type_str(mpWorld, type);
-            std::string result(data);
-            ecs_os_free(data);
-            return result;
+            return pyflecs::type(mpWorld, ecs_get_type(mpWorld, mRaw));
         }
 
     private:
         ecs_world_t* mpWorld;
         ecs_entity_t mRaw;
 
+    };
+
+    /**
+ * Wraps the id which can be an entity or a pair.
+ */
+    class id final {
+    public:
+        id(ecs_world_t* world, ecs_id_t eid) :
+            mpWorld(world),
+            mRaw(eid)
+        {
+
+        }
+
+        bool is_pair() const
+        {
+            return ecs_id_is_pair(mRaw);
+        }
+
+        pyflecs::entity relation() const
+        {
+            return pyflecs::entity(mpWorld, ecs_pair_relation(mpWorld, mRaw));
+        }
+
+        pyflecs::entity object() const
+        {
+            return pyflecs::entity(mpWorld, ecs_pair_object(mpWorld, mRaw));
+        }
+
+        pyflecs::entity as_entity() const
+        {
+            return pyflecs::entity(mpWorld, mRaw);
+        }
+
+    private:
+        ecs_world_t* mpWorld;
+        ecs_id_t mRaw;
     };
 }

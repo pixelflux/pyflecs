@@ -24,7 +24,7 @@
 
 using namespace pyflecs;
 
-entity::entity(ecs_world_t* world, ecs_entity_t e) :
+entity::entity(ecs_world_t* world, const ecs_entity_t e) :
     mpWorld(world),
     mRaw(e)
 {

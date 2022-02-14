@@ -33,16 +33,36 @@ namespace pyflecs {
         iter(ecs_iter_t iter);
 
         bool next();
-        void* term(entity& e, int32_t idx);
+        void* get_term_data(entity& e, int32_t idx);
         int32_t count()
         {
             return mRaw.count;
         }
+
         ecs_entity_t get_entity(size_t idx)
         {
             return mRaw.entities[idx];
         }
-        
+
+        int32_t term_count()
+        {
+            return mRaw.term_count;
+        }
+
+        ecs_term_t term(size_t idx)
+        {
+            return mRaw.terms[idx];
+        }
+
+        size_t term_size(size_t idx)
+        {
+            return ecs_term_size(&mRaw, idx);
+        }
+
+        bool term_owned(size_t idx)
+        {
+            return ecs_term_is_owned(&mRaw, idx);
+        }
 
     private:
         ecs_iter_t mRaw;

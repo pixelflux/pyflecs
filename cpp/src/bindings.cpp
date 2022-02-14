@@ -50,11 +50,25 @@ py::array_t<uint8_t> wrap_entity_get(entity* e, entity* c)
     return py::array_t<uint8_t>(c->size(), ptr, dummy);
 }
 
+void wrap_entity_set_pair(entity* e, entity* c, entity* other,
+    py::array_t<uint8_t, py::array::c_style | py::array::forcecast> data)
+{
+    py::buffer_info info = data.request();
+    e->set_pair(*c, *other, data.nbytes(), info.ptr);
+}
+
 py::array_t<uint8_t> wrap_iter_term(pyflecs::iter *iter, entity& e,
     int32_t idx)
 {
-    auto result = reinterpret_cast<const uint8_t*>(iter->term(e, idx));
-    uint32_t size = iter->count() * e.size();
+    auto result = reinterpret_cast<const uint8_t*>(
+        iter->get_term_data(e, idx));
+    size_t count = iter->count();
+    if (!iter->term_owned(idx))
+        count = 1;
+    uint32_t size = count * iter->term_size(idx);
+    if (result == nullptr)
+        size = 0;
+
     py::str dummy; // See note above about ownership
     return py::array_t<uint8_t>(size, result, dummy);
 }
@@ -91,6 +105,18 @@ PYBIND11_MODULE(_flecs, m) {
         .def_readwrite("inout", &ecs_term_t::inout)
         ;
 
+    py::class_<pyflecs::type>(m, "type")
+        .def("string", &pyflecs::type::string)
+        .def("length", &pyflecs::type::length)
+        ;
+
+    py::class_<pyflecs::id>(m, "id")
+        .def("is_pair", &pyflecs::id::is_pair)
+        .def("object", &pyflecs::id::object)
+        .def("relation", &pyflecs::id::relation)
+        .def("as_entity", &pyflecs::id::as_entity)
+        ;
+
     py::class_<entity>(m, "entity")
         .def("is_alive", &entity::is_alive)
         .def("destruct", &entity::destruct)
@@ -106,6 +132,7 @@ PYBIND11_MODULE(_flecs, m) {
         .def("add_pair", &entity::add_pair)
         .def("remove_pair", &entity::remove_pair)
         .def("has_pair", &entity::has_pair)
+        .def("set_pair", &wrap_entity_set_pair)
 
         // Hierarchies
         .def("path", &entity::path)
@@ -122,8 +149,10 @@ PYBIND11_MODULE(_flecs, m) {
     py::class_<pyflecs::iter>(m, "iter")
         .def("next", &iter::next)
         .def("count", &iter::count)
+        .def("term_count", &iter::term_count)
+        .def("term", &iter::term)
         .def("get_entity", &iter::get_entity)
-        .def("term", &wrap_iter_term,
+        .def("data", &wrap_iter_term,
             py::return_value_policy::reference)
         ;
 
@@ -143,6 +172,7 @@ PYBIND11_MODULE(_flecs, m) {
         .def(py::init<>())
         .def("entity", py::overload_cast<>(&world::entity))
         .def("entity", py::overload_cast<std::string>(&world::entity))
+        .def("entity", py::overload_cast<pyflecs::entity&>(&world::entity))
         .def("lookup", &world::lookup)
         .def("lookup_path", &world::lookup_path)
         .def("lookup_by_id", &world::lookup_by_id)
@@ -152,6 +182,22 @@ PYBIND11_MODULE(_flecs, m) {
         .def("create_term_iter", &world::create_term_iter)
         .def("set", &wrap_world_set)
         .def("get", &wrap_world_get, py::return_value_policy::reference)
+
+        //  function
+        .def("pair", [](world* w, entity* e, entity* other) {
+                return pyflecs::entity(w->raw(), ecs_pair(e->raw(), other->raw()));
+            })
+
+        // Hooks to special entities
+        .def("EcsPrefab", [](world* w) {
+            return pyflecs::entity(w->raw(), EcsPrefab);
+            })
+        .def("EcsIsA", [](world* w) {
+                return pyflecs::entity(w->raw(), EcsIsA);
+            })
+        .def("EcsChildOf", [](world* w) {
+                return pyflecs::entity(w->raw(), EcsChildOf);
+            })
         ;
 
 }

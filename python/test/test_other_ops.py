@@ -41,6 +41,78 @@ def test_prefab():
     assert not e.has(prefab)
 
 
+def test_hierarchy_cascade_simple():
+    """
+    This tests the cascade modifier in-use with the hierarchy.
+    """
+    world = flecs.World()
+    position = world.component("Position", 'float32', 2)
+
+    # Create out of order to show cascade working
+    # Level 2
+    moon = world.entity("Moon")
+    moon.add(position)
+    moon.set(position, np.array([1, 1], dtype='float32'))
+
+    # Level 0
+    sun = world.entity("Sun")
+    sun.add(position)
+    sun.set(position, np.array([1, 1], dtype='float32'))
+
+    # Level 1
+    mercury = world.entity("Mercury")
+    sun.add_child(mercury)
+    mercury.add(position)
+    mercury.set(position, np.array([1, 1], dtype='float32'))
+
+    venus = world.entity("Venus")
+    sun.add_child(venus)
+    venus.add(position)
+    venus.set(position, np.array([2, 2], dtype='float32'))
+
+    earth = world.entity("Earth")
+    sun.add_child(earth)
+    earth.add(position)
+    earth.set(position, np.array([3, 3], dtype='float32'))
+
+    # Level 2
+    earth.add_child(moon)
+
+    satellite = world.entity("Satellite")
+    earth.add_child(satellite)
+    satellite.add(position)
+    satellite.set(position, np.array([2, 2], dtype='float32'))
+
+    # Validate the paths
+    assert sun.path == 'Sun'
+    assert mercury.path == 'Sun.Mercury'
+    assert venus.path == 'Sun.Venus'
+    assert earth.path == 'Sun.Earth'
+    assert moon.path == 'Sun.Earth.Moon'
+
+    expr = 'Position, ?Position(parent|cascade)'
+    query = world.query_builder(expr=expr, instanced=True).build()
+
+    print(sun.type)
+    print(earth.type)
+    print(moon.type)
+
+    # Store the number of iterations
+    num_iter = 0
+    for result in query:
+        print(f"Iteration: {num_iter + 1}")
+        for entity in result.entities:
+            print(f"Entity: {entity.name}")
+        print(result.term_count)
+        print(f"Result[0] length: {len(result[0])}")
+        print(f"Result[1] length: {len(result[1])}")
+        print(f"Result[0]: {result[0]}")
+        print(f"Result[1]: {result[1]}")
+        num_iter += 1
+
+    assert num_iter == 3
+
+
 def test_hierarchy_cascade():
     """
     This tests the cascade modifier in-use with the hierarchy.
@@ -50,48 +122,65 @@ def test_hierarchy_cascade():
     local_coord = world.tag('Local')
     world_coord = world.tag('World')
 
+    # Create the moon out of order to ensure cascade works
+    moon = world.entity("Moon")
+    moon.add_pair(position, world_coord)
+    moon.set_pair(position, local_coord, np.array([1, 1], dtype='float32'))
+
     # Level 0
-    sun = world.entity()
+    sun = world.entity("Sun")
     sun.add_pair(position, world_coord)
-    sun.add_pair(position, local_coord)
     sun.set_pair(position, local_coord, np.array([1, 1], dtype='float32'))
 
     # Level 1
-    mercury = world.entity()
+    mercury = world.entity("Mercury")
     sun.add_child(mercury)
     mercury.add_pair(position, world_coord)
-    mercury.add_pair(position, local_coord)
     mercury.set_pair(position, local_coord, np.array([1, 1], dtype='float32'))
 
-    venus = world.entity()
+    venus = world.entity("Venus")
     sun.add_child(venus)
     venus.add_pair(position, world_coord)
-    venus.add_pair(position, local_coord)
     venus.set_pair(position, local_coord, np.array([2, 2], dtype='float32'))
 
-    earth = world.entity()
+    earth = world.entity("Earth")
     sun.add_child(earth)
     earth.add_pair(position, world_coord)
-    earth.add_pair(position, local_coord)
     earth.set_pair(position, local_coord, np.array([3, 3], dtype='float32'))
 
     # Level 2
-    moon = world.entity()
     earth.add_child(moon)
-    moon.add_pair(position, world_coord)
-    moon.add_pair(position, local_coord)
-    moon.set_pair(position, local_coord, np.array([1, 1], dtype='float32'))
 
-    expr = 'Position(Local)'
-    query = world.query_builder(expr=expr).build()
+    # Validate the paths
+    assert sun.path == 'Sun'
+    assert mercury.path == 'Sun.Mercury'
+    assert venus.path == 'Sun.Venus'
+    assert earth.path == 'Sun.Earth'
+    assert moon.path == 'Sun.Earth.Moon'
+
+    expr = '(Position,Local), (Position,World), ?Position(parent|cascade,World)'
+    query = world.query_builder(expr=expr, instanced=True).build()
 
     # Store the number of iterations
     num_iter = 0
     for result in query:
-        print(result.term_count)
+        print(f"Iteration: {num_iter + 1}")
+        for entity in result.entities:
+            print(f"Entity: {entity.name}")
+            print(f"Entity type: {entity.type}")
+        print(f"Result[0] length: {len(result[0])}")
+        print(f"Result[1] length: {len(result[1])}")
+        print(f"Result[2] length: {len(result[2])}")
+        print(f"Result[0]: {result[0]}")
+        print(f"Result[1]: {result[1]}")
+        print(f"Result[2]: {result[2]}")
         num_iter += 1
+        if len(result[2]) > 0:
+            result[1][:] = result[0] + result[2]
+        else:
+            result[1][:] = result[0]
 
-    assert num_iter == 2
+    assert num_iter == 3
 
 
 

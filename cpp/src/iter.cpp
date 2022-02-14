@@ -36,8 +36,7 @@ bool iter::next()
     return ecs_iter_next(&mRaw);
 }
 
-void* iter::term(entity& e, int32_t idx)
+void* iter::get_term_data(entity& e, int32_t idx)
 {
-    return ecs_term_w_size(&mRaw, e.size(), idx);
+    return ecs_term_w_size(&mRaw, this->term_size(idx), idx);
 }
-

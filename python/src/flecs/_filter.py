@@ -112,8 +112,8 @@ class FilterIter:
             info = self._components[item]
         else:
             info = self._component_dict[item]
-        return info.component.create_view(
-            self._ptr.data(info.component.ptr, info.index))
+        data = self._ptr.data(info.component.ptr, info.index)
+        return info.component.create_view(data)
 
     @property
     def term_count(self) -> int:
@@ -156,12 +156,14 @@ class FilterBuilder:
     """
     Class for building up a filter.
     """
-    def __init__(self, world: 'World', *args, name: str = '', expr: str = ''):
+    def __init__(self, world: 'World', *args, name: str = '', expr: str = '',
+                 instanced: bool = False):
         self._world = world
         self._terms = []
         self._components = []
         self._expr = expr
         self._name = name
+        self._instanced = instanced
 
         for arg in args:
             self.term(arg)
@@ -223,5 +225,5 @@ class FilterBuilder:
         """
         # Build the raw filter
         ptr = self._world.ptr.create_filter(self._name, self._expr,
-                                            self._terms)
+                                            self._instanced, self._terms)
         return Filter(ptr, self._world)

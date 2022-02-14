@@ -50,6 +50,11 @@ pyflecs::entity world::entity(std::string name)
     return pyflecs::entity(mpRaw, ecs_entity_init(mpRaw, &desc));
 }
 
+pyflecs::entity world::entity(pyflecs::entity &c)
+{
+    return pyflecs::entity(mpRaw, ecs_new_w_id(mpRaw, c.raw()));
+}
+
 pyflecs::entity world::lookup(std::string name)
 {
     return pyflecs::entity(mpRaw, ecs_lookup(mpRaw, name.c_str()));
@@ -60,9 +65,9 @@ pyflecs::entity world::lookup_path(std::string name)
     return pyflecs::entity(mpRaw, ecs_lookup_path(mpRaw, 0, name.c_str()));
 }
 
-pyflecs::entity world::lookup_by_id(ecs_entity_t eid)
+pyflecs::id world::lookup_by_id(ecs_entity_t eid)
 {
-    return pyflecs::entity(mpRaw, eid);
+    return pyflecs::id(mpRaw, eid);
 }
 
 pyflecs::entity world::component(std::string name, size_t size, 
@@ -81,12 +86,13 @@ pyflecs::entity world::component(std::string name, size_t size,
 }
 
 pyflecs::filter world::create_filter(std::string name, 
-    std::string expr, std::vector<ecs_term_t> terms)
+    std::string expr, bool instanced, std::vector<ecs_term_t> terms)
 {
     ecs_filter_t f;
     ecs_filter_desc_t desc{};
     desc.name = name.c_str();
     desc.expr = expr.c_str();
+    desc.instanced = instanced;
 
     if (terms.size() > ECS_TERM_DESC_CACHE_SIZE)
     {
@@ -105,11 +111,12 @@ pyflecs::filter world::create_filter(std::string name,
 }
 
 pyflecs::query world::create_query(std::string name,
-    std::string expr, std::vector<ecs_term_t> terms)
+    std::string expr, bool instanced, std::vector<ecs_term_t> terms)
 {
     ecs_query_desc_t desc{};
     desc.filter.name = name.c_str();
     desc.filter.expr = expr.c_str();
+    desc.filter.instanced = instanced;
 
     if (terms.size() > ECS_TERM_DESC_CACHE_SIZE)
     {
