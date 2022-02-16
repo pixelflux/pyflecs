@@ -158,7 +158,8 @@ def test_hierarchy_cascade():
     assert earth.path == 'Sun.Earth'
     assert moon.path == 'Sun.Earth.Moon'
 
-    expr = '(Position,Local), (Position,World), ?Position(parent|cascade,World)'
+    expr = '[in](Position,Local), [out](Position,World), ' \
+           '[in]?Position(parent|cascade,World)'
     query = world.query_builder(expr=expr, instanced=True).build()
 
     # Store the number of iterations

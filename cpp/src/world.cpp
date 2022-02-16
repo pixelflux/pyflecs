@@ -105,7 +105,11 @@ pyflecs::filter world::create_filter(std::string name,
             desc.terms[idx] = terms[idx];
         }
     }    
-    ecs_filter_init(mpRaw, &f, &desc);
+    auto result = ecs_filter_init(mpRaw, &f, &desc);
+    if (result != 0)
+    {
+        throw std::runtime_error("Filter creation failed.");
+    }
 
     return pyflecs::filter(mpRaw, f);
 }
@@ -130,6 +134,9 @@ pyflecs::query world::create_query(std::string name,
         }
     }    
     auto q = ecs_query_init(mpRaw, &desc);
-
+    if (q == nullptr)
+    {
+        throw std::runtime_error("Query creation failed.");
+    }
     return pyflecs::query(mpRaw, q);
 }

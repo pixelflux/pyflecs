@@ -7,7 +7,7 @@ from collections import namedtuple
 import flecs._flecs as _flecs
 
 from ._component import Component
-from ._entity import Entity
+from ._entity import Entity, Pair
 
 if TYPE_CHECKING:
     from ._world import World
@@ -145,8 +145,16 @@ class Filter:
         for idx in range(ptr.term_count()):
             term = ptr.terms(idx)
             component = world.lookup_by_id(term.id)
+            if isinstance(component, Pair):
+                if component.relation.is_component:
+                    component = component.relation
+                elif component.object.is_component:
+                    component = component.object
+                else:
+                    continue
+
             self._components.append(ComponentEntry(
-                component=component, index=idx+1))
+                component=component, index=idx + 1))
 
     def __iter__(self) -> FilterIter:
         return FilterIter(self._ptr.iter(), self._world, self._components)
