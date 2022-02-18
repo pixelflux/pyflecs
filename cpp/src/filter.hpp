@@ -26,6 +26,8 @@
 #include "entity.hpp"
 #include "iter.hpp"
 
+#include <vector>
+
 
 namespace pyflecs {
 

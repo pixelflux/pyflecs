@@ -29,6 +29,7 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 /**
  * Approximates the flecs C++ class interface for the world.
@@ -45,7 +46,11 @@ namespace pyflecs {
         pyflecs::entity entity(pyflecs::entity& c);
         pyflecs::entity lookup(std::string name);
         pyflecs::entity lookup_path(std::string name);
-        pyflecs::id lookup_by_id(ecs_entity_t eid);
+        pyflecs::id lookup_by_id(ecs_id_t eid);
+
+        std::vector<pyflecs::entity> bulk_entity_w_id(ecs_id_t eid,
+            int32_t count);
+        pyflecs::bulk_entity_builder bulk_entity_builder(int32_t count);
 
         pyflecs::entity component(std::string name, size_t size, 
             size_t alignment);

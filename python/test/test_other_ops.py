@@ -41,6 +41,62 @@ def test_prefab():
     assert not e.has(prefab)
 
 
+def test_bulk_prefab():
+    """
+    Creates a large number of entities using a prefab.
+    """
+    world = flecs.World()
+
+    prefab = world.prefab()
+    position = world.component("Position", 'float32', 3)
+    velocity = world.component("Velocity", 'float32', 3)
+
+    prefab.set(position, np.array([1, 2, 3], dtype='float32'))
+    prefab.set(velocity, np.array([4, 5, 6], dtype='float32'))
+
+    pair = world.pair(world.isa_entity, prefab)
+    results = world.bulk_entity_w_id(pair, 1000)
+
+    expr = 'Position, Velocity'
+    query = world.query_builder(expr=expr, instanced=True).build()
+
+    for val in query:
+        assert len(val) == 1000
+        # Just references
+        assert len(val["Position"]) == 1
+        assert len(val["Velocity"]) == 1
+
+
+def test_bulk_create():
+    """
+    Creates from bulk components
+    """
+    world = flecs.World()
+    rng = np.random.default_rng(12)
+
+    position = world.component("Position", 'float32', 3)
+    velocity = world.component("Velocity", 'float32', 3)
+
+    position_data = rng.normal(size=(1000, 3)).astype('float32')
+    velocity_data = rng.normal(size=(1000, 3)).astype('float32')
+
+    bulk_builder = world.bulk_entity_builder(1000)
+    bulk_builder.add(position, position_data)
+    bulk_builder.add(velocity, velocity_data)
+    entities = bulk_builder.build()
+
+    expr = 'Position, Velocity'
+    query = world.query_builder(expr=expr, instanced=True).build()
+
+    for val in query:
+        assert len(val) == 1000
+        # Just references
+        assert len(val["Position"]) == 1000
+        assert len(val["Velocity"]) == 1000
+
+        np.testing.assert_array_equal(val["Position"], position_data)
+
+
 def test_hierarchy_cascade_simple():
     """
     This tests the cascade modifier in-use with the hierarchy.

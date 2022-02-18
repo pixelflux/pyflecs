@@ -55,6 +55,25 @@ pyflecs::entity world::entity(pyflecs::entity &c)
     return pyflecs::entity(mpRaw, ecs_new_w_id(mpRaw, c.raw()));
 }
 
+std::vector<pyflecs::entity> world::bulk_entity_w_id(ecs_id_t eid, 
+    int32_t count)
+{
+    auto result = ecs_bulk_new_w_id(mpRaw, eid, count);
+    if (result == nullptr)
+        throw std::runtime_error("Error on bulk creation with ID");
+    std::vector<pyflecs::entity> entities;
+    for (int32_t idx = 0; idx < count; idx++)
+    {
+        entities.push_back(pyflecs::entity(mpRaw, result[idx]));
+    }
+    return entities;
+}
+
+pyflecs::bulk_entity_builder world::bulk_entity_builder(int32_t count)
+{
+    return pyflecs::bulk_entity_builder(mpRaw, count);
+}
+
 pyflecs::entity world::lookup(std::string name)
 {
     return pyflecs::entity(mpRaw, ecs_lookup(mpRaw, name.c_str()));
@@ -65,7 +84,7 @@ pyflecs::entity world::lookup_path(std::string name)
     return pyflecs::entity(mpRaw, ecs_lookup_path(mpRaw, 0, name.c_str()));
 }
 
-pyflecs::id world::lookup_by_id(ecs_entity_t eid)
+pyflecs::id world::lookup_by_id(ecs_id_t eid)
 {
     return pyflecs::id(mpRaw, eid);
 }

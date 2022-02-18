@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 
 import flecs._flecs as _flecs
-from ._entity import Entity, Pair
+from ._entity import Entity, Pair, BulkEntityBuilder
 from ._component import Component
 from ._types import ShapeLike
 from ._filter import FilterBuilder, FilterIter, Term, ComponentEntry
@@ -78,6 +78,14 @@ class World:
         else:
             e = self._ptr.entity()
         return Entity(e)
+
+    def bulk_entity_w_id(self, eid: Union[Pair, Entity], count: int):
+        results = self._ptr.bulk_entity_w_id(eid.ptr.raw(), count)
+        return [Entity(val) for val in results]
+
+    def bulk_entity_builder(self, count: int):
+        result = self._ptr.bulk_entity_builder(count)
+        return BulkEntityBuilder(result)
 
     def pair(self, e: Entity, other: Entity) -> Pair:
         return Pair(self._ptr.pair(e.ptr, other.ptr), e, other)

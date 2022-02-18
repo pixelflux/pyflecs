@@ -22,16 +22,46 @@
 
 #include "entity.hpp"
 
+#include <stdexcept>
+
 using namespace pyflecs;
 
 entity::entity(ecs_world_t* world, const ecs_entity_t e) :
     mpWorld(world),
     mRaw(e)
 {
-
 }
 
 entity::~entity()
 {
 
+}
+
+
+bulk_entity_builder::bulk_entity_builder(ecs_world_t* pWorld, int32_t count) : 
+    mpWorld(pWorld),
+    mDesc{}
+{
+
+}
+
+void bulk_entity_builder::add(ecs_id_t eid, void* data)
+{
+
+    mDesc.ids[mData.size()] = eid;
+    mData.push_back(data);
+}
+
+std::vector<pyflecs::entity> bulk_entity_builder::build()
+{
+    mDesc.data = mData.data();
+    auto result = ecs_bulk_init(mpWorld, &mDesc);
+    if (result == nullptr)
+        throw std::runtime_error("Error on bulk creation with ID");
+    std::vector<pyflecs::entity> entities;
+    for (int32_t idx = 0; idx < mDesc.count; idx++)
+    {
+        entities.push_back(pyflecs::entity(mpWorld, result[idx]));
+    }
+    return entities;
 }

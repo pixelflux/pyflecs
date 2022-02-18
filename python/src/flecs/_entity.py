@@ -1,7 +1,7 @@
 """
 Provides access to the flecs entity.
 """
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, List
 import numpy as np
 
 if TYPE_CHECKING:
@@ -157,3 +157,22 @@ class Pair:
     @property
     def object(self) -> Entity:
         return self._object
+
+
+class BulkEntityBuilder:
+    """
+    Provides a mechanism for creating entities in bulk.
+    """
+    def __init__(self, ptr):
+        self._ptr = ptr
+
+    @property
+    def count(self) -> int:
+        return self._ptr.count()
+
+    def add(self, e: Entity, data: np.ndarray):
+        self._ptr.add(e.ptr, data)
+
+    def build(self) -> List[Entity]:
+        results = self._ptr.build()
+        return [Entity(val) for val in results]

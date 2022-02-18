@@ -24,6 +24,7 @@
 
 #include "flecs.h"
 #include <string>
+#include <vector>
 
 
 namespace pyflecs {
@@ -177,8 +178,8 @@ namespace pyflecs {
     };
 
     /**
- * Wraps the id which can be an entity or a pair.
- */
+     * Wraps the id which can be an entity or a pair.
+     */
     class id final {
     public:
         id(ecs_world_t* world, ecs_id_t eid) :
@@ -208,8 +209,30 @@ namespace pyflecs {
             return pyflecs::entity(mpWorld, mRaw);
         }
 
+        ecs_entity_t raw() const
+        {
+            return mRaw;
+        }
+
     private:
         ecs_world_t* mpWorld;
         ecs_id_t mRaw;
+    };
+
+    class bulk_entity_builder final {
+    public:
+        bulk_entity_builder(ecs_world_t* pWorld, int32_t count);
+        void add(ecs_id_t eid, void* data);
+        std::vector<pyflecs::entity> build();
+
+        int32_t count() const
+        {
+            return mDesc.count;
+        }
+
+    private:
+        ecs_world_t* mpWorld;
+        ecs_bulk_desc_t mDesc;
+        std::vector<void*> mData;
     };
 }

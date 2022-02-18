@@ -57,6 +57,13 @@ void wrap_entity_set_pair(entity* e, entity* c, entity* other,
     e->set_pair(*c, *other, data.nbytes(), info.ptr);
 }
 
+void wrap_bulk_entity_add(bulk_entity_builder *builder, entity* c,
+    py::array_t<uint8_t, py::array::c_style | py::array::forcecast> data)
+{
+    py::buffer_info info = data.request();
+    builder->add(c->raw(), info.ptr);
+}
+
 py::array_t<uint8_t> wrap_iter_term(pyflecs::iter *iter, entity& e,
     int32_t idx)
 {
@@ -156,6 +163,12 @@ PYBIND11_MODULE(_flecs, m) {
             py::return_value_policy::reference)
         ;
 
+    py::class_<bulk_entity_builder>(m, "bulk_entity_builder")
+        .def("build", &bulk_entity_builder::build)
+        .def("count", &bulk_entity_builder::count)
+        .def("add", &wrap_bulk_entity_add)
+        ;
+
     py::class_<filter>(m, "filter")
         .def("iter", &filter::iter)
         .def("term_count", &filter::term_count)
@@ -173,6 +186,8 @@ PYBIND11_MODULE(_flecs, m) {
         .def("entity", py::overload_cast<>(&world::entity))
         .def("entity", py::overload_cast<std::string>(&world::entity))
         .def("entity", py::overload_cast<pyflecs::entity&>(&world::entity))
+        .def("bulk_entity_w_id", &world::bulk_entity_w_id)
+        .def("bulk_entity_builder", &world::bulk_entity_builder)
         .def("lookup", &world::lookup)
         .def("lookup_path", &world::lookup_path)
         .def("lookup_by_id", &world::lookup_by_id)
